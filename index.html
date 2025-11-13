@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sismógrafo ESP32 - Alerta en Vivo</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
+        .contenedor { border: 2px solid #ccc; padding: 30px; border-radius: 10px; max-width: 400px; margin: 0 auto; }
+        #estado { font-size: 3em; font-weight: bold; margin: 20px 0; padding: 10px; border-radius: 5px; color: white; }
+        .ok { background-color: #4CAF50; } /* Verde */
+        .alerta { background-color: #f44336; animation: blinker 1s linear infinite; } /* Rojo intermitente */
+        @keyframes blinker { 50% { opacity: 0; } }
+    </style>
+</head>
+<body>
+
+    <div class="contenedor">
+        <h1>Estado del Sismógrafo ESP32</h1>
+        
+        <div id="estado" class="ok">
+            CARGANDO...
+        </div>
+
+        <p>Magnitud detectada (G): <span id="magnitud">--</span></p>
+        <p>Última actualización: <span id="timestamp">--</span></p>
+    </div>
+
+    <script>
+        const API_URL = 'alerta.json'; // Archivo que actualiza el ESP32
+        const ESTADO_DIV = document.getElementById('estado');
+        const MAGNITUD_SPAN = document.getElementById('magnitud');
+        const TIMESTAMP_SPAN = document.getElementById('timestamp');
+
+        function verificarAlerta() {
+            fetch(API_URL)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('No se pudo cargar el archivo JSON.');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Actualizar el estado visual
+                    ESTADO_DIV.textContent = data.status;
+                    MAGNITUD_SPAN.textContent = data.magnitud_G.toFixed(3);
+                    TIMESTAMP_SPAN.textContent = data.fecha_hora;
+
+                    // Aplicar estilos según el estado
+                    if (data.status === 'ALERTA') {
+                        ESTADO_DIV.classList.remove('ok');
+                        ESTADO_DIV.classList.add('alerta');
+                        document.title = '🚨 ALERTA SÍSMICA';
+                    } else {
+                        ESTADO_DIV.classList.remove('alerta');
+                        ESTADO_DIV.classList.add('ok');
+                        document.title = '✅ Sismógrafo OK';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    ESTADO_DIV.textContent = 'ERROR DE CONEXIÓN';
+                    ESTADO_DIV.className = '';
+                    ESTADO_DIV.classList.add('alerta');
+                });
+        }
+
+        // Ejecutar la función de verificación cada 3 segundos
+        setInterval(verificarAlerta, 3000); 
+
+        // Ejecutar inmediatamente al cargar la página
+        verificarAlerta(); 
+    </script>
+
+</body>
+</html>
